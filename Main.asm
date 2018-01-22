@@ -1,4 +1,4 @@
-;Linear Collision NES
+;NES Color Demo
 ;Programmed by Bryan McClain
 
 
@@ -12,95 +12,216 @@
 ;-------------Define some basic constants----------------
 PPUC1_Default=%10000000
 PPUC2_Default=%00011000
-	
-	
+
+
+;------------------Define Variables----------------------
+  .rsset $0000
+  
+Temp1		.rs 1
+Temp2		.rs 1
+Temp3		.rs 1		;Some random temp locations
+Temp4		.rs 1		
+Temp5		.rs 1  
+  
+Seed1		.rs 1
+XorVal1 	.rs 1			;All random number generators (1 - 3)
+Seed2 		.rs 1	
+XorVal2		.rs 1
+Seed3		.rs 1
+XorVal3		.rs 1
+RandMin		.rs 1
+RandMax		.rs 1
+RandDif		.rs 1
+
+PPU_Setting1	.rs 1			;Change the PPU settings for the NMI
+PPU_Setting2  	.rs 1
+NMI_Fired		.rs 1			;Had a NMI occured?
+PaletteData		.rs 32			;Palette is stored in RAM to write to on next NMI
+
+C1Data		.rs 1		;Controller 1
+C2Data		.rs 1		;Controller 2
+StKeyPress	.rs 1		;Start key press
+AKeyPress	.rs 1		;A key press
+
+EnemyReleaseTimer	.rs 36		;Counters for when the enemies should be released
+EnemySprites = $0220			;Where the enemy sprites start
+Probability			.rs 1		;Which numbers to AND so the result is 0
+DigitsAllowed		.rs 1		;Cancel out some timer digits to make it more likely to release an enemy
+
+PlayFieldTimer		.rs 1
+PlayFieldColor		.rs 1
+
+LevelNumber			.rs 1		;The current level
+
+CollisionData = $0400			;Where the collsion data is stored
+ChangeX				.rs 1		;How much to move the player
+ChangeY				.rs 1		
+NewX				.rs 1		;The new xy locations
+NewY				.rs 1
+TileX				.rs 1		;The XY tile positions
+TileY				.rs 1
+TileXRem			.rs 1		;Remainders of Tile X and Y
+TileYRem			.rs 1
+CollisionByte		.rs 1		;The byte number to look for in the collision data
+CollisionBit		.rs 1		;The bit to look for in the collision data
+TileTL				.rs 1
+TileTR				.rs 1		;What tile is located in each quadrant
+TileBL				.rs 1
+TileBR				.rs 1
+Check				.rs 4		;What tile quadrants to check (TL, TR, BL, BR)
+
+HitTimer			.rs 1		;The timer for when the player can move again
+InvensibleS			.rs 1		;The timer for when the play cannot be hit
+InvensibleMS		.rs 1		
+DefaultInvensible	.rs 1		;The default number of seconds of invensibility for this level
+InvincibleLeft		.rs 1
+InvincibleSpr = $021D		;This is the number of times the player can be invincible
+
+ReadySprites = $02B0		;Where the get ready sprites should be
+
+ExitColor			.rs 1		;The location for the exit tiles on the screen		
+ExitTimer			.rs 1		;FF = No color. Timer value 0-X-80
+ExitAnimTimer		.rs 1		;The timer for the end of the game
+ExitAnimSprite		.rs 1		;the sprite to be used in the exit
+
+ERed = PaletteData+5
+EYellow = PaletteData+9
+EGreen = PaletteData+6		;Define the memory spots for the various colors
+EBlue = PaletteData+10
+
+ColRed = $16
+ColYellow = $28		;Constants for the energy colors
+ColGreen = $1A
+ColBlue = $12	
+
+LVLTens = $0209		;Locations for level sprites
+LVLOnes = $020D
+
+TimeMin = $0211			;Time for minutes
+TimeTSec = $0215		;Time for tens of seconds
+TimeOSec = $0219		;Time for hundreds of seconds
+TimeCounter		.rs 1	;Frames until the next timer tick
+
 ;------------------Start of Code-------------------------	
   .bank 0
   .org $8000
   
-Start:
+Reset:
 
-	BIT $2002
-vblankwait1:      ; First, wait for vblank to make sure PPU is ready
-	BIT $2002
-	BPL vblankwait1
-vblankwait2:      ; First, wait for vblank to make sure PPU is ready
-	BIT $2002
-	BPL vblankwait2	
-
+	.include "Scripts/Reset.asm"
+	
+	;Set up random numbers
+	LDA XorVals
+	STA XorVal1
+	LDA XorVals+1
+	STA XorVal2
+	LDA XorVals+2
+	STA XorVal3
+	
+	JSR ComprosoftIntro
+	
 	LDA #$00		;Turn off display to load default assets
 	STA $2000
 	STA $2001
 
-;Load the basic palette into the memory
-	LDA $2002             ; read PPU status to reset the high/low latch
-	LDA #$3F
-	STA $2006
-	LDA #$00
-	STA $2006
+;Load the basic palette into the RAM
 	
-	LDX #$00
+	JSR LoadGameplayPalette
 	
-PaletteLoop:
-	LDA Palette, X
-	STA $2007
-	INX
-	CPX #$20
-	BNE PaletteLoop
+Title:
+	JSR ShowTitle
 
-	.include "Scripts/Intro.asm"
+	JSR LoadGame
 	
-vblankwait3:      ; Wait for another vBlank before messing with settings
-	BIT $2002
-	BPL vblankwait3	
-	
-LoadTitle:
-	LDA #$00		;Turn off display to load in title
-	STA $2000
-	STA $2001
-	.include "Scripts/LoadTitle.asm"
+	JMP Gameplay
 
-
-;Turn the screen on
-	LDA #%10000000
-	STA $2000
-	LDA #%00110000		;Turn off display to load default assets
-	STA $2001
 	
-Forever:
-	JMP Forever
+	
+	
+	
+	
+	
+	
+	
+;----------------------NMI Code----------------------	
 	
 	
 NMI:
-	LDA #%10000000
-	STA $2000
-	LDA #%00011110
-	STA $2001
-	LDA #$00
-	STA $2005
-	STA $2005
+	PHA			;Backup the accumulator & X to the stack
+	TXA
+	PHA
+	
+	LDA #$00   ;Disable NMI until end of NMI Code
+    STA $2000
+	
+	;Use DMA to copy the sprites on every frame
+    LDA #$00
+    STA $2003  ; set the low byte (00) of the RAM address
+    LDA #$02
+    STA $4014  ; set the high byte (02) of the RAM address, start the transfer	
+
+  ;Update the palette using the data stored in the RAM
+	JSR UpdatePalette
+	
+  ;This is the PPU clean up section, so rendering the next frame starts properly.
+	JSR NoScroll       ;tell the ppu there is no background scrolling
+	JSR UpdatePPU
+	
+	LDA #$FF
+	STA NMI_Fired		;Let the person know that the NMI fired
+	
+	JSR GetRandom1
+	JSR GetRandom2
+	JSR GetRandom3
+	JSR MixNumbers
+	
+	PLA 		;And retrieve the accumulator & X
+	TAX
+	PLA
+	
 	RTI   
   
-  
-  
+
 ;--------------------Other Data--------------------------
-	
-  .bank 1
-  .org $E000
   
 Palette:
-  .db $0F,$1A,$0A,$2,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F	;Background (0,1,2,3)
-  .db $0F,$07,$17,$27,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C	;Sprites (0,1,2,3)  
+  .db $0F,$0F,$30,$2, $0F,$16,$1A,$37, $0F,$28,$12,$3B, $0F,$0F,$0F,$0F	;Background (0,1,2,3)
+  .db $0F,$30,$30,$27,$0F,$30,$30,$3C,$0F,$1C,$30,$14,$0F,$02,$30,$3C	;Sprites (0,1,2,3)  
 
+XorVals:
+  .db $1d,$2b,$2d,$4d,$5f,$63,$65,$69,$71,$87,$8d,$a9,$c3,$cf,$e7,$f5
+   
+  
 	.include "Data/TitleData.asm"
 	.include "Data/ComprosoftData.asm"
+	.include "Data/PlayFieldData.asm"	
+	.include "Data/SpriteData.asm"	
+	.include "Data/LevelData.asm"
+		
+  .bank 1
+    .org $E000	
+	
+;-----------------Subroutines------------------ 
+	.include "Scripts/Intro.asm"
+	.include "Scripts/Controller.asm"
+	.include "Scripts/Graphics.asm"
+	.include "Scripts/Title.asm"	
+	.include "Scripts/LoadGame.asm"
+	.include "Scripts/Random.asm"
+	.include "Scripts/Enemy.asm"
+	.include "Scripts/Player.asm"
+	.include "Scripts/Palette.asm"
+	.include "Scripts/Collision.asm"
+	.include "Scripts/Gameplay.asm"	
+	.include "Scripts/Time.asm"	
+	
 ;------------------Interrupts-----------------------------
   
   
   .org $FFFA     ;interrupts start at $FFFA
 
 	.dw NMI      ; location of NMI Interrupt
-	.dw Start    ; code to run at reset
+	.dw Reset    ; code to run at reset
 	.dw 0		 ;IQR interrupt (not used)
 	
 
