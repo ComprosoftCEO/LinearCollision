@@ -224,6 +224,19 @@ TestEnemyCollision:
 	RTS	
 	
 .cont3
+
+	;Don't test if cheat is enabled
+	LDA CheatMode
+	AND #CheatBit
+	BEQ .noCheat
+
+	LDA CheatMode
+	AND #$04
+	BEQ .noCheat
+	RTS
+
+
+.noCheat
 	LDX #$00
 	LDY #$00
 .loop

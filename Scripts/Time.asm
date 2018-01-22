@@ -1,4 +1,17 @@
 UpdateTime:
+	
+	;Make sure the timer isn't disabled
+	LDA CheatMode
+	AND #CheatBit
+	BEQ .nocheat
+	
+	LDA CheatMode
+	AND #$02
+	BEQ .nocheat
+	RTS
+	
+	
+.nocheat
 	;Make sure the player isn't in the exit
 	LDX ExitAnimTimer
 	CPX #$FF

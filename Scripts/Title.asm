@@ -6,6 +6,7 @@ ShowTitle:
 	JSR ResetSprites
 	
 	JSR LoadTitlePalette
+	JSR LoadCheatSprites
 	
 	LDX #$00			;Load the background
 	LDY #$00
@@ -80,6 +81,7 @@ ShowTitle:
 	LDA #01			;Reset the level counter
 	STA LevelNumber
 	STA StKeyPress	;Wait for start to be released
+	STA AKeyPress	;Wait for select to be pressed
 	
 	LDA #$02			;Reset the number of invincibles left
 	STA InvincibleLeft
@@ -87,6 +89,7 @@ ShowTitle:
 	LDA #$00
 	STA LayoutNumber		;Always start with default layout
 	STA AutoPlayTimer		;Reset the autoplay counter
+	STA CheatMode		;Reset cheat data
 	
 	;Reset the previous layouts counter
 	LDX #$00
@@ -103,7 +106,11 @@ ShowTitle:
 	
 WaitStart:
 	JSR UpdateTitlePal
+	JSR UpdateCheatPalette
 	JSR GetControls
+	
+	JSR CheatKeyPress	;Test for the cheat key
+	
 	LDA C1Data
 	AND #%00010000		;Test for start key
 	BEQ .nokey

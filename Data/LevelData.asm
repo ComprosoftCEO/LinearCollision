@@ -17,7 +17,8 @@ LVLInv:			;Invincible time in seconds
 	
 LVLLayout:
 	.dw Default
-	.dw Grid
+	.dw Grid1
+	.dw Grid2
 	.dw Abstract1
 	.dw Abstract2
 	.dw Abstract3
@@ -25,14 +26,18 @@ LVLLayout:
 	.dw Triangles2
 	.dw Clumps1
 	.dw Clumps2
+	.dw Clumps3
 	.dw Stripes
 	.dw Spiral
 	.dw Oval
 	.dw Circle
-	.dw Arena
-	.dw Highway
-	.dw Circuits
-	.dw Love
 	.dw Diamond
 	.dw XShape
+	.dw Arena
+	.dw SkyScrapers
+	.dw Mines
+	.dw Highway
+	.dw Circuits
+	.dw Clock
+	.dw Love
 	.dw Rain

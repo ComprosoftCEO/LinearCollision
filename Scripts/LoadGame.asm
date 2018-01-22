@@ -380,7 +380,7 @@ LoadLevelData:
 	DEX						;Level number is 1 greater than level
 	CPX #24				;Level 25 is the same as level 24
 	BCC .skip
-	LDX #$0F			;If greater than 15, set equal to 15
+	LDX #23			;If greater than 24, set equal to 24
 .skip
 
 	;Information for enemy release probability
@@ -492,4 +492,6 @@ FinalData:
 	LDA #ColBlue
 	STA EBlue
 	
+	JSR CheatCounter		;Draw infinity symbols if cheats are enabled
+	JSR CheatTimer
 	RTS 

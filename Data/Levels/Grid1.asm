@@ -1,4 +1,4 @@
-Grid:
+Grid1:
   .db $80,$00,$00,$01
   .db $B6,$DB,$DB,$6D
   .db $A2,$DB,$DB,$45

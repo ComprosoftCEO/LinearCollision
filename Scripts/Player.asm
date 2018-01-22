@@ -67,7 +67,7 @@ MovePlayer:
 	;Make sure the A key isn't pressed
 	LDA AKeyPress
 	CMP #$00
-	BNE .up
+	BNE .b
 	
 	LDA #$01			;Do turn on the A key press
 	STA AKeyPress
@@ -75,14 +75,31 @@ MovePlayer:
 	;Make sure the timer isn't on
 	LDA InvensibleMS
 	CMP #$FF
-	BNE .up
+	BNE .b
 	
 	JSR SetUpInvincible
-	JMP .up
+	JMP .b
 	
 .resetA
 	LDA #$00
 	STA AKeyPress
+	
+	
+.b
+	;Test for cheat mode enabled
+	LDA CheatMode
+	AND #CheatBit
+	BEQ .up
+	
+	LDA CheatMode	;See if this cheat is enabled
+	AND #$08
+	BEQ .up
+	
+	LDA C1Data
+	AND #%01000000
+	BEQ .up
+	
+	JSR CheatEnergy
 	
 .up
 	LDA C1Data
@@ -257,6 +274,17 @@ SetUpInvincible:
 	LDA #$04
 	JSR sound_load
 
+;If the cheat is enabled, skip this step
+	LDA CheatMode
+	AND #CheatBit
+	BEQ .noCheat
+	
+	LDA CheatMode
+	AND #$01
+	BEQ .noCheat
+	JMP .yesCheat
+	
+.noCheat
 ;Update the sprite counter
 	DEC InvincibleLeft
 	LDA InvincibleLeft
@@ -264,6 +292,7 @@ SetUpInvincible:
 	ADC #$3B
 	STA InvincibleSpr
 	
+.yesCheat
 ;Set up the invincible timer
 	LDA DefaultInvensible
 	CMP #$00			;00 = no timer

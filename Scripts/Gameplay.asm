@@ -53,6 +53,14 @@ LoadAutoPlay:
 	JSR ResetAttrib
 	JSR ResetSprites
 
+	;Pick a random layout
+	JSR GetRandom1
+	AND #$03
+	STA AutoPlayLayout
+	TAX
+	LDA AutoPlayLayouts, X
+	STA LayoutNumber
+	
 	JSR LoadPlayField
 	JSR LoadGameplayPalette
 	JSR LoadEnergy
@@ -74,6 +82,8 @@ LoadAutoPlay:
 	;Disable the audio
 	JSR sound_disable
 	
+	JSR CheatCounter		;Draw infinity symbols if cheats are enabled
+	JSR CheatTimer
 	
 	
 	JSR StartLevel

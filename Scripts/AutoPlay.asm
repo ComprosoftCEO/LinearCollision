@@ -45,10 +45,17 @@ GetAutoKey:
 
 
 ResetAutoPointer:
+	LDA AutoPlayLayout
+	ASL A
+	ASL A			;Figure out which data to get pointer for (4 possible)
+	STA Temp1
+	
 	;Pick a random path to follow (From 4 possible)
 	JSR GetRandom1
 	AND #%00000011
 	ASL A	;Multiply by 2
+	CLC
+	ADC Temp1
 	TAX
 	
 	LDA MovementData, X

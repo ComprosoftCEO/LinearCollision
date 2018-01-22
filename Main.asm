@@ -1,4 +1,4 @@
-;NES Color Demo
+;Linear Collision NES
 ;Programmed by Bryan McClain
 
 
@@ -51,6 +51,9 @@ C1Data		.rs 1		;Controller 1
 C2Data		.rs 1		;Controller 2
 StKeyPress	.rs 1		;Start key press
 AKeyPress	.rs 1		;A key press
+CheatMode	.rs 1		;All data for the Cheat Mode
+
+CheatBit = $10
 
 EnemyReleaseTimer	.rs 48		;Counters for when the enemies should be released
 EnemyCount			.rs 1		;The total enemy count
@@ -138,11 +141,13 @@ AutoPlayCounter		.rs 1
 AutoPlayCurrentKey	.rs 1
 AutoPlayTimer		.rs 1		;How many frames until the autoplay
 AutoPlayEnabled		.rs 1		;Is Autoplay Enabled?
+AutoPlayLayout		.rs 1
 
 LoggerLow		.rs 1
 LoggerHigh		.rs 1		;Various data spots for the key logger
 LoggerCurKey	.rs 1
 LoggerCounter	.rs 1
+
 
 ;------------------Start of Code-------------------------	
   .bank 0
@@ -160,7 +165,7 @@ Reset:
 	LDA XorVals+2
 	STA XorVal3
 	
-	;JSR ComprosoftIntro
+	JSR ComprosoftIntro
 	
 	LDA #$00		;Turn off display to load default assets
 	STA $2000
@@ -277,19 +282,20 @@ XorVals:
 	.include "Scripts/Gameplay.asm"	
 	.include "Scripts/Time.asm"	
 	.include "Scripts/AutoPlay.asm"
+	.include "Scripts/Cheat.asm"
 	
 	
 ;---------------------Maze Layouts----------
   .bank 2
 	.org $C000
 	
-LevelCount = 20
+LevelCount = 25
 	
 	.include "Data/Levels/Default.asm"
 	.include "Data/Levels/Abstract1.asm"
 	.include "Data/Levels/Clumps1.asm"
 	.include "Data/Levels/Clumps2.asm"
-	.include "Data/Levels/Grid.asm"
+	.include "Data/Levels/Grid1.asm"
 	.include "Data/Levels/Diamond.asm"
 	.include "Data/Levels/Circuits.asm"
 	.include "Data/Levels/Highway.asm"
@@ -305,6 +311,12 @@ LevelCount = 20
 	.include "Data/Levels/Spiral.asm"
 	.include "Data/Levels/Triangles2.asm"
 	.include "Data/Levels/Stripes.asm"
+	.include "Data/Levels/Mines.asm"
+	.include "Data/Levels/Grid2.asm"
+	.include "Data/Levels/SkyScrapers.asm"
+	.include "Data/Levels/Clock.asm"
+	.include "Data/Levels/Clumps3.asm"
+		
 	
 ;-------------Sound Engine----------------------	
   .bank 3
@@ -343,7 +355,6 @@ song_headers:
 	.dw Reset    ; code to run at reset
 	.dw 0		 ;IQR interrupt (not used)
 	
-
 
 ;--------------------Graphics-----------------------------
 	
