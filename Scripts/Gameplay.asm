@@ -33,7 +33,7 @@ LoadGame:
 	JSR LoadSprites
 	JSR LoadLevelData
 	JSR FinalData
-
+	
 	JSR StartLevel
 
 	RTS
@@ -103,6 +103,11 @@ Pause:
 
 	
 StartLevel:
+	
+	;Play the intro sound
+	JSR sound_init
+	LDA #$00
+	JSR sound_load
 
 	LDA #$80			;Enable NMI
 	STA $2000
@@ -121,6 +126,7 @@ StartLevel:
 	CPX #20
 	BNE .spr
 
+	
 	;Now, wait for 2 seconds
 	LDY #04
 	LDX #30

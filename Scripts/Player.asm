@@ -236,6 +236,10 @@ SetUpInvincible:
 	RTS
 	
 .allowed
+;Play the sound effect
+	LDA #$04
+	JSR sound_load
+
 ;Update the sprite counter
 	DEC InvincibleLeft
 	LDA InvincibleLeft
@@ -287,6 +291,10 @@ SetUpExitAnim:
 	STA ExitAnimTimer
 	LDA #$10
 	STA ExitAnimSprite
+	
+	;Play the sound
+	LDA #$03
+	JSR sound_load
 	
 	RTS
 

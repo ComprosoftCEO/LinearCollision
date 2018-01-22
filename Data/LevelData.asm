@@ -16,5 +16,8 @@ LVLInv:			;Invincible time in seconds
 	.db 4,4,4,3,3, 3,3,3,3,2, 2,2,2,1,1, 1
 	
 LVLLayout:
-	.db LOW(Abstract1),HIGH(Abstract1)
-	.db LOW(Default),HIGH(Default)
+	.dw Default
+	.dw Grid
+	.dw Clumps
+	.dw Abstract1
+	.dw Diamond

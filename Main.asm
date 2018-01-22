@@ -24,7 +24,10 @@ Temp4		.rs 1
 Temp5		.rs 1  
 Temp6		.rs 1  
 TempX		.rs 1		;Temp locations for XY values
-TempY		.rs 1  
+TempY		.rs 1
+
+sound_ptr .rs 2			;Sound pointers
+sound_ptr2 .rs 2  
   
 Seed1		.rs 1
 XorVal1 	.rs 1			;All random number generators (1 - 3)
@@ -144,6 +147,9 @@ Reset:
 	LDA XorVals+2
 	STA XorVal3
 	
+	;Enable sound channels
+    jsr sound_init
+	
 	;JSR ComprosoftIntro
 	
 	LDA #$00		;Turn off display to load default assets
@@ -176,6 +182,8 @@ NMI:
 	PHA			;Backup the accumulator & X to the stack
 	TXA
 	PHA
+	TYA
+	PHA
 	
 	LDA #$00   ;Disable NMI until end of NMI Code
     STA $2000
@@ -201,7 +209,12 @@ NMI:
 	JSR GetRandom3
 	JSR MixNumbers
 	
+	JSR sound_play_frame    ;run our sound engine after all drawing code is done.
+                            ;this ensures our sound engine gets run once per frame.
+	
 	PLA 		;And retrieve the accumulator & X
+	TAY
+	PLA
 	TAX
 	PLA
 	
@@ -249,9 +262,38 @@ XorVals:
 	
 	.include "Data/Levels/Default.asm"		;Default:
 	.include "Data/Levels/Abstract1.asm"
+	.include "Data/Levels/Clumps.asm"
+	.include "Data/Levels/Grid.asm"
+	.include "Data/Levels/Diamond.asm"
 	
+	
+;-------------Sound Engine----------------------	
   .bank 3
     .org $E000
+	
+	.include "Audio/sound_engine.asm"
+	.include "Audio/sound_opcodes.asm"
+	.include "Audio/note_length_table.i"
+	.include "Audio/note_table.i"
+	.include "Audio/vol_envelopes.i"
+	
+;------------Sound Effects--------------            
+song_headers:
+    .word intro_header
+    .word explosion_header
+	.word coin_header
+	.word warp_header
+	.word invincible_header
+	.word tick_header
+    .word gameover_header
+    
+	.include "Audio/My Songs/Intro.asm"
+	.include "Audio/My Songs/Explosion.asm"
+	.include "Audio/My Songs/Coin.asm"
+	.include "Audio/My Songs/Warp.asm"
+	.include "Audio/My Songs/Invincible.asm"
+	.include "Audio/My Songs/Tick.asm"
+	.include "Audio/My Songs/GameOver.asm"	
 	
 ;------------------Interrupts-----------------------------
   

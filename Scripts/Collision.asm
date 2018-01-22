@@ -210,6 +210,13 @@ TestEnemyCollision:
 	RTS
 	
 .cont
+	;Don't test if player is hurt
+	LDA $0201
+	CMP #$0D
+	BNE .cont2
+	RTS
+
+.cont2
 	LDX #$00
 	LDY #$00
 .loop
@@ -256,6 +263,10 @@ TestEnemyCollision:
 	
 ;What to execute when the player hits an enemy
 EnemyHit:
+	
+	;Play the explosion sound
+	LDA #$01
+	JSR sound_load
 	
 	;Reset player colors
 	LDA #$30

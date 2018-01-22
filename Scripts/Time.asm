@@ -13,14 +13,16 @@ UpdateTime:
 .cont
 	LDA #60
 	STA TimeCounter		;Reset this counter
+
 	
+
 	;Test seconds
 	LDX TimeOSec
 	DEX
 	CPX #$3A
 	BEQ .tens
 	STX TimeOSec
-	RTS 
+	JMP .sound
 	
 .tens
 	LDX #$44		;Reset the ones seconds
@@ -31,7 +33,7 @@ UpdateTime:
 	CPX #$3A
 	BEQ .min
 	STX TimeTSec
-	RTS
+	JMP .sound
 	
 .min
 	LDX #$40
@@ -42,6 +44,21 @@ UpdateTime:
 	CPX #$3A
 	BEQ GameOver
 	STX TimeMin
+	
+.sound
+	;Play a tick if the minutes = 0 and T sec = 0
+	LDA TimeMin
+	CMP #$3B
+	BNE .nosound
+	LDA TimeTSec
+	CMP #$3B
+	BNE .nosound
+	
+	;Play a tick sound
+	LDA #$05
+	JSR sound_load
+	
+.nosound	
 	RTS
 	
 GameOver:
@@ -61,7 +78,13 @@ GameOver:
 	LDA #13
 	STA $0201
 	STA $0205
-	
+
+;Load explosion and game over sound
+	LDA #$01
+	JSR sound_load
+	LDA #$06
+	JSR sound_load
+
 	LDX #240
 .loop
 	JSR WaitNMI
