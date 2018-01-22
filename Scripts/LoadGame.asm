@@ -1,94 +1,304 @@
 LoadPlayField:
 
+	.include "Macros/SurroundingWalls.asm"
 	
-	;Playfield starts at row 3
+	;Playfield starts at row 2
 	LDA $2002
 	LDA #$20
 	STA $2006
 	LDA #$20
 	STA $2006
 	
-;Set up the address access for the playfield data
-	LDA #LOW(PlayField)
-	STA Temp1
-	LDA #HIGH(PlayField)
-	STA Temp2
-	
-;Use Temp3 as a counter for the number of scan lines
-	LDA #$1F			;Add 2 scan lines for the palette
-	STA Temp3
-
-;Temp 4 is the shift counter
-;Temp 5 is the counter for the byte
-	LDA #$08
-	STA Temp4
-	LDA #$04
-	STA Temp5
-
-	
-	
+	;Load the status screen:
+	LDX #$00
 .loop1
-	LDX #$20
-.loop2
-	LDY #$00
-	LDA [Temp1],Y		;Store the value from memory
+	LDA StatusScreen, X
 	STA $2007
+	INX
+	CPX #32
+	BNE .loop1
 	
-	;Now, do the collision data:
-	;$70, $03, $04, $0E, and $0F are to be skipped
-	CMP #$70
-	BEQ .noWall
-	CMP #$03
-	BEQ .noWall
-	CMP #$04
-	BEQ .noWall
-	CMP #$0E
-	BEQ .noWall
-	CMP #$0F
-	BEQ .noWall
-	
-	;So there is a wall
-	SEC
-	JMP .updateCollision
-.noWall
-	CLC
-	
-.updateCollision	
-	TXA				;Save X
-	PHA
-	LDX Temp5
-	ROL CollisionData, X
-	PLA
-	TAX				;Restore X
-	
-	DEC Temp4
-	BNE .updateP		;Test when to move to the next byte
-	LDA #$08
-	STA Temp4
-	INC Temp5
-	
-.updateP	
-	LDY Temp1		;Update the pointer
-	INY
-	BNE .skip	
-	INC Temp2
-.skip
-	STY Temp1
-	
-	DEX
+	;Also, load in a row entirely of $FD's
+	LDA #$FD
+	LDX #00
+.loop2
+	STA $2007
+	INX
+	CPX #32
 	BNE .loop2
 	
-	DEC Temp3		;Loop through the lines
-	BNE .loop1
+	;Now, copy the collision data
+	;First, do 3 lines of FF on top and bottom (12 Bytes total)
+	LDA #$FF
+	LDX #00
+.loop3
+	STA $0404, X
+	STA $0474, X
+	INX
+	CPX #12
+	BNE .loop3
+	
+	LDA LayoutNumber
+	ASL A	;Shift to multiply by 2
+	TAX
+	LDA LVLLayout, X
+	STA Temp1
+	LDA LVLLayout+1, X		;[Temp1,Temp2] is used for indirect indexing
+	STA Temp2
+	
+	;There are exactly 100 bytes to copy
+	LDY #$00
+.loop4
+	LDA [Temp1], Y
+	STA $0410, Y
+	INY
+	CPY #100
+	BNE .loop4
+	
+	
+	;Convert this collision data into tiles
+	;Loop through every tile in the game
+	
+	;Temp1 represents the bit
+	LDA #$80
+	STA Temp1
+	
+	;This should take 108 bytes, so use Y as a counter
+	LDY #$00
+.loop5
+	LDA $040C, Y
+	AND Temp1
+	BNE .wall
+	LDA #$70
+	STA $2007	;No wall, by default, = $70
+	JMP .next
+	
+.wall
+	;Figure out the surrounding walls
+	PreviousWalls
+	NextWalls
+	CurrentWalls
 
+	;Now, or all of these together
+	LDX #$00
+	LDA #$00
+.orLoop	
+	ORA Tiles, X
+	INX
+	CPX #$08
+	BNE .orLoop
+	
+	;And find the value in the lookup table
+	TAX
+	LDA LookupTable, X
+	STA $2007
+	
+.next
+	LSR Temp1
+	BCS .nextByte
+	JMP .loop5
+.nextByte
+	LDA #$80		;Shift through 8 bits before moving to next byte
+	STA Temp1
+	INY
+	CPY #108		;Copy exactly 108 bits
+	BEQ .exit
+	JMP .loop5
+	
+.exit	
+	RTS
+		
+	
+	
+	
+	
+	
+LoadEnergy:
+	;Load the energy balls into the PPU
+	
+	LDA LayoutNumber
+	ASL A	;Shift to multiply by 2
+	TAX
+	LDA LVLLayout, X
+	STA Temp1
+	LDA LVLLayout+1, X		;[Temp1,Temp2] is used for indirect indexing
+	STA Temp2
+	
+	;Temp3/Temp4 used to calculate XY location of energies
+	
+	LDY #100	;Jump ahead bytes tiles
+	LDX #$00
+	LDA $2002		;Reset the latch
+.loop
+	LDA [Temp1], Y
+	STA PPU_Low
+	INY				;DW are backwards, so store them backwards
+	LDA [Temp1], Y
+	STA PPU_High
+	
+	;Mark the location in the PPU memory
+	LDA $2002
+	LDA PPU_High
+	STA $2006
+	LDA PPU_Low
+	STA $2006
+	
+	LDA EnergyTiles, X
+	STA $2007
+	
+	;Calculate the XY position in reguards to the screen
+	JSR CalculatePPUXY
+	
+	;Store these values into the appropirate Slots
+	LDA TempX
+	STA RedX, X
+	LDA TempY
+	STA RedY, X
+	
+	;Figure out which attribute to modify
+	;Store in PPU_Low and PPU_High
+	
+	JSR GetAttributeXY
+	
+	LDA AttribData, X		;Tell which attribute to poke into this value
+	STA Temp3
+	
+	JSR PutAttribute
+	
+	INX
+	INY
+	CPX #$04
+	BNE .loop
 	RTS
 	
 	
 	
 	
 	
+	
+	;Load the energy into the PPU
+LoadExit:
+	
+	;Lookup table should already be in memory under [Temp1,Temp2]
+	LDY #108		;This data starts at 108 bytes
+	LDA [Temp1], Y
+	STA PPU_Low
+	STA Temp6		;Also store in Temp6 Low for backup
+	INY
+	LDA [Temp1], Y
+	STA PPU_High
+	STA Temp5		;Also store in Temp5 High for backup
+	
+	;Figure out the exit XY locations
+	JSR CalculatePPUXY		;Convert PPU to XY
+	LDA TempX
+	CLC
+	ADC #$04		;X 4 to X to find center
+	STA ExitX
+	LDA TempY
+	CLC				;Add 8 to Y to find center
+	ADC #$08
+	STA ExitY
+	
+	;Copy back into values
+	LDA Temp5
+	STA PPU_High
+	LDA Temp6
+	STA PPU_Low
+	
+	LDA $2002		;Reset high/low latch
+	LDA PPU_High
+	STA $2006
+	LDA PPU_Low
+	STA $2006
+	
+	LDX #$00
+.loop	
+	JSR WriteExitData
+
+	;Add 31 to PPU HighLow
+	LDA Temp6
+	CLC
+	ADC #31
+	STA Temp6
+	BCC .skip
+	INC Temp5		;Incrament on overflow
+.skip
+
+	;Copy back into values
+	LDA Temp5
+	STA PPU_High
+	LDA Temp6
+	STA PPU_Low
+
+	;Reset the PPU data location
+	LDA $2002		;Reset high/low latch
+	LDA PPU_High
+	STA $2006
+	LDA PPU_Low
+	STA $2006
+	
+	INX
+	CPX #$03
+	BNE .loop
+	
+	RTS
+	
+	
+	
+WriteExitData:
+	;Write the data for the exit
+	LDA #$0E
+	STA $2007
+	LDA #$0F
+	STA $2007
+	
+	;Figure out the XY coordinates of this attribute
+	JSR CalculatePPUXY		;Convert PPU to XY
+	JSR GetAttributeXY		;Convert XY to attribute
+	
+	LDA #$03		;Tell which attribute to poke into this value
+	STA Temp3
+	JSR PutAttribute		;Poke in the new value
+	
+	INC Temp6			;Incrament low
+	BNE .skip			;If not equal to 0 (no overflow), then don't update next address
+	INC Temp5
+.skip
+	;Copy back to PPU HighLow
+	LDA Temp5
+	STA PPU_High
+	LDA Temp6
+	STA PPU_Low
+
+	;Figure out the XY coordinates of this attribute
+	JSR CalculatePPUXY		;Convert PPU to XY
+	JSR GetAttributeXY		;Convert XY to attribute
+	
+	LDA #$03		;Tell which attribute to poke into this value
+	STA Temp3
+	JSR PutAttribute		;Poke in the new value
+	
+	RTS
+	
+	
+	
+	
+	
+	
 LoadSprites:
+
+	.include "Macros/LoadEnemies.asm"
+
 ;Now, load in the default location of sprites:
+
+;First, define the player XY location
+	LDY #110		;Data starts at 110 bytes
+	LDA [Temp1], Y
+	STA PlayerX
+	INY
+	LDA [Temp1], Y
+	STA PlayerY
 
 ;Enemy Sprite Defaults:
 	LDX #00
@@ -111,52 +321,33 @@ LoadSprites:
 	INX
 	INX
 	INX
-	CPY #36
+	CPY #48
 	BNE .defloop
 	
-;Now, do the top and bottom enemies
-	LDX #00
-	LDY #00
-.toploop
-	LDA #15
-	STA EnemySprites, X
-	LDA #239
-	STA EnemySprites+40, X
-	
-	LDA HorPos, Y
-	STA EnemySprites+3, X
-	STA EnemySprites+43, X
-	
-	INX
-	INX
-	INX
-	INX
-	INY
-	CPY #10
-	BNE .toploop
-	
+;Now, load the enemies from the level data
+	LDX #00		;Enemy counter starts at Byte 112
+	LDY #112
 
-;And the left and right enemies
-	LDX #00
-	LDY #00
-.sideloop
-	LDA #$FF
-	STA EnemySprites+83, X
-	STA EnemySprites+115, X
+	LoadEnemy TopEnemyCount, #15, EnemySprites, EnemySprites+3 			;Top Enemies
+	LoadEnemy BottomEnemyCount, #239, EnemySprites, EnemySprites+3 		;Bottom Enemies
+	LoadEnemy LeftEnemyCount, #$FF, EnemySprites+3, EnemySprites 		;Left Enemies
+	LoadEnemy RightEnemyCount, #$FF, EnemySprites+3, EnemySprites 		;Right Enemies
 	
-	LDA VertPos, Y
-	STA EnemySprites+80, X
-	STA EnemySprites+112, X
+	;Configure the counters
+	LDA BottomEnemyCount
+	CLC
+	ADC TopEnemyCount		;Bottom = Top + Bottom
+	STA BottomEnemyCount
 	
-	INX
-	INX
-	INX
-	INX
-	INY
-	CPY #$08
-	BNE .sideloop
+	LDA LeftEnemyCount
+	CLC
+	ADC BottomEnemyCount	;Left = Top + Bottom + Left
+	STA LeftEnemyCount
 	
-	
+	LDA RightEnemyCount
+	CLC						;Right = Top + Bottom + Left + Right
+	ADC LeftEnemyCount
+	STA RightEnemyCount
 	
 ;Set up the other sprites:
 	LDX #$08
@@ -273,6 +464,9 @@ FinalData:
 	LDA #$01
 	STA StKeyPress
 	STA AKeyPress
+	
+	LDA RightEnemyCount
+	STA EnemyCount
 	
 ;Set up data for the exit animation
 	LDA #$00

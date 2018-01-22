@@ -8,6 +8,9 @@ MoveEnemySegInc:	.macro 		;Macro to move the enemies
 	;5 = Default tile value
 	;6 = Xor Value
 	
+	LDA \1
+	BEQ .exit\@		;Skip if the counter is greater than 0
+	
 .loopT\@
 	LDA EnemySprites+1, Y			;Is enemy enabled?
 	BNE .moveT\@			;Yes = Move Enemy
@@ -57,7 +60,8 @@ MoveEnemySegInc:	.macro 		;Macro to move the enemies
 	INX
 	CPX \1
 	BNE .loopT\@
-	
+
+.exit\@
 	.endm
 	
 	
@@ -69,6 +73,11 @@ MoveEnemySegDec:	.macro 		;Macro to move the enemies
 	;2 = Memory addreess to Move
 	;3 = Value to Stop at
 	;4 = Reset value
+	;5 = Default tile value
+	;6 = Xor Value
+	
+	LDA \1
+	BEQ .exit\@		;Skip if the counter is greater than 0
 	
 .loopT\@
 	LDA EnemySprites+1, Y			;Is enemy enabled?
@@ -119,5 +128,7 @@ MoveEnemySegDec:	.macro 		;Macro to move the enemies
 	INX
 	CPX \1
 	BNE .loopT\@
+	
+.exit\@
 	
 	.endm

@@ -3,7 +3,7 @@
 
 
 ;iNES Header
-	.inesprg 1   ; one (1) bank of 16 K program code
+	.inesprg 2   ; one (1) bank of 16 K program code
 	.ineschr 1   ; one (1) bank of 8 K picture data
 	.inesmap 0   ; we use mapper 0
 	.inesmir 0   ; Vertical mirroring
@@ -22,6 +22,9 @@ Temp2		.rs 1
 Temp3		.rs 1		;Some random temp locations
 Temp4		.rs 1		
 Temp5		.rs 1  
+Temp6		.rs 1  
+TempX		.rs 1		;Temp locations for XY values
+TempY		.rs 1  
   
 Seed1		.rs 1
 XorVal1 	.rs 1			;All random number generators (1 - 3)
@@ -35,6 +38,9 @@ RandDif		.rs 1
 
 PPU_Setting1	.rs 1			;Change the PPU settings for the NMI
 PPU_Setting2  	.rs 1
+PPU_High		.rs 1			;Temp locations for PPU high and low addresses
+PPU_Low			.rs 1
+PPU_Attrib		.rs 1			;Temp location for the attribute
 NMI_Fired		.rs 1			;Had a NMI occured?
 PaletteData		.rs 32			;Palette is stored in RAM to write to on next NMI
 
@@ -43,8 +49,14 @@ C2Data		.rs 1		;Controller 2
 StKeyPress	.rs 1		;Start key press
 AKeyPress	.rs 1		;A key press
 
-EnemyReleaseTimer	.rs 36		;Counters for when the enemies should be released
+EnemyReleaseTimer	.rs 48		;Counters for when the enemies should be released
+EnemyCount			.rs 1		;The total enemy count
+TopEnemyCount		.rs 1	
+BottomEnemyCount	.rs 1		;Counters for the number of enemies on various sides
+LeftEnemyCount		.rs 1
+RightEnemyCount		.rs 1
 EnemySprites = $0220			;Where the enemy sprites start
+
 Probability			.rs 1		;Which numbers to AND so the result is 0
 DigitsAllowed		.rs 1		;Cancel out some timer digits to make it more likely to release an enemy
 
@@ -52,6 +64,7 @@ PlayFieldTimer		.rs 1
 PlayFieldColor		.rs 1
 
 LevelNumber			.rs 1		;The current level
+LayoutNumber		.rs 1		;The current layout (There are 16 total)
 
 CollisionData = $0400			;Where the collsion data is stored
 ChangeX				.rs 1		;How much to move the player
@@ -69,7 +82,10 @@ TileTR				.rs 1		;What tile is located in each quadrant
 TileBL				.rs 1
 TileBR				.rs 1
 Check				.rs 4		;What tile quadrants to check (TL, TR, BL, BR)
+Tiles				.rs 8		;The true/false of the surrounding tiles when loading the playing field
 
+PlayerX				.rs 1		;The XY location of the player
+PlayerY				.rs 1
 HitTimer			.rs 1		;The timer for when the player can move again
 InvensibleS			.rs 1		;The timer for when the play cannot be hit
 InvensibleMS		.rs 1		
@@ -77,8 +93,10 @@ DefaultInvensible	.rs 1		;The default number of seconds of invensibility for thi
 InvincibleLeft		.rs 1
 InvincibleSpr = $021D		;This is the number of times the player can be invincible
 
-ReadySprites = $02B0		;Where the get ready sprites should be
+ReadySprites = $02E0		;Where the get ready sprites should be
 
+ExitX				.rs 1		;The XY location for the exit, used for checking exit
+ExitY				.rs 1
 ExitColor			.rs 1		;The location for the exit tiles on the screen		
 ExitTimer			.rs 1		;FF = No color. Timer value 0-X-80
 ExitAnimTimer		.rs 1		;The timer for the end of the game
@@ -88,6 +106,14 @@ ERed = PaletteData+5
 EYellow = PaletteData+9
 EGreen = PaletteData+6		;Define the memory spots for the various colors
 EBlue = PaletteData+10
+RedX 		.rs 1
+YellowX		.rs 1		;XY Values for all of the color locations
+GreenX		.rs 1
+BlueX		.rs 1
+RedY		.rs 1
+YellowY		.rs 1
+GreenY		.rs 1
+BlueY		.rs 1
 
 ColRed = $16
 ColYellow = $28		;Constants for the energy colors
@@ -118,7 +144,7 @@ Reset:
 	LDA XorVals+2
 	STA XorVal3
 	
-	JSR ComprosoftIntro
+	;JSR ComprosoftIntro
 	
 	LDA #$00		;Turn off display to load default assets
 	STA $2000
@@ -197,9 +223,10 @@ XorVals:
 	.include "Data/PlayFieldData.asm"	
 	.include "Data/SpriteData.asm"	
 	.include "Data/LevelData.asm"
+	.include "Data/LookupTable.asm"
 		
   .bank 1
-    .org $E000	
+    .org $A000	
 	
 ;-----------------Subroutines------------------ 
 	.include "Scripts/Intro.asm"
@@ -215,6 +242,17 @@ XorVals:
 	.include "Scripts/Gameplay.asm"	
 	.include "Scripts/Time.asm"	
 	
+	
+;---------------------Maze Layouts----------
+  .bank 2
+	.org $C000
+	
+	.include "Data/Levels/Default.asm"		;Default:
+	.include "Data/Levels/Abstract1.asm"
+	
+  .bank 3
+    .org $E000
+	
 ;------------------Interrupts-----------------------------
   
   
@@ -228,7 +266,7 @@ XorVals:
 
 ;--------------------Graphics-----------------------------
 	
-  .bank 2        ; change to bank 2 - Graphics information
+  .bank 4        ; change to bank 2 - Graphics information
   .org $0000     ;Graphics start at $0000
 
 	.incbin "Graphics.chr"  ; Include Binary file that will contain all program graphics

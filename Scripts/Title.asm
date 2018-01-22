@@ -78,6 +78,9 @@ ShowTitle:
 	LDA #$02			;Reset the number of invincibles left
 	STA InvincibleLeft
 	
+	LDA #$00
+	STA LayoutNumber	;The layout number
+	
 	RTS 
 	
 	

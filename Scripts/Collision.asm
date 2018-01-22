@@ -115,45 +115,70 @@ TestEnergyCollision:
 	;Make sure the hit timer is 0
 	LDA HitTimer
 	CMP #$00
-	BEQ .cont
+	BEQ .red
 	RTS
-.cont
+.red
 	
-	;Energies are located at:
-	;20,37    |     D8,37
-	;20,C1    |     D8,C1
+	;Get energy values from memory
 	LDA $0200
 	STA Temp1		;Test Y row 1
-	LDA #$37
+	LDA RedY
 	STA Temp2
 	
 	JSR GetDifference		
 	CMP #$06		;Should be within a range of 5
-	BCS .skip
+	BCS .yellow
 	
-	;Now compare X1
-	TestEnergyX #$20,ERed,#ColRed
-	TestEnergyX #$D8,EYellow,#ColYellow
+	;Now compare X values
+	TestEnergyX RedX,ERed,#ColRed
 	
 	
-.skip
+.yellow
+
+	;Get energy values from memory
+	LDA $0200
+	STA Temp1		;Test Y row 1
+	LDA YellowY
+	STA Temp2
+	
+	JSR GetDifference		
+	CMP #$06		;Should be within a range of 5
+	BCS .green
+	
+	;Now compare X values
+	TestEnergyX YellowX,EYellow,#ColYellow
+	
+.green	
 	LDA $0200
 	STA Temp1
-	LDA #$C9
+	LDA GreenY
 	STA Temp2
 	
 	JSR GetDifference		
 	CMP #$06		;Should be within a range of 5
-	BCS .skip2
+	BCS .blue
 
-	;Now compare X2
-	TestEnergyX #$20,EGreen,#ColGreen
-	TestEnergyX #$D8,EBlue,#ColBlue
+	;Now compare X values
+	TestEnergyX GreenX,EGreen,#ColGreen
 	
-.skip2
+.blue
+	LDA $0200
+	STA Temp1
+	LDA BlueY
+	STA Temp2
+	
+	JSR GetDifference		
+	CMP #$06		;Should be within a range of 5
+	BCS .exit
 
+	;Now compare X values
+	TestEnergyX BlueX,EBlue,#ColBlue
+
+
+.exit
 	JSR AllEnergyCollected
 	RTS
+	
 	
 	
 ;Sets ACC to difference between Temp1 and Temp2
@@ -178,71 +203,47 @@ GetDifference:
 	
 TestEnemyCollision:
 
-	.include "Macros/TestEnemyXY.asm"
-
 	;Don't test if player is invincible
 	LDA InvensibleMS
 	CMP #$FF
 	BEQ .cont
 	RTS
 	
-.cont	
-	;First, test the vertical enemies
+.cont
 	LDX #$00
 	LDY #$00
-.loop1
-	LDA $0203
+.loop
+	;First, test if the enemy is enabled
+	LDA EnemySprites+1, X
+	CMP #$00
+	BEQ .skip
+
+	LDA $0203		;Test X difference value
 	STA Temp1
-	LDA HorPos, X
+	LDA EnemySprites+3, X
 	STA Temp2
-	
 	JSR GetDifference		
 	CMP #$08		;Should be within a range of 7
-	BCS .skip1
+	BCS .skip
 	
-	;Test the two sprites in this range
-	TestEnemyY EnemySprites
-	TestEnemyY EnemySprites+40
-	
-	
-.skip1
-	INX
-	INY
-	INY		;Incrament registers
-	INY
-	INY
-	CPX #$0A		;There are 10 vert sprites
-	BNE .loop1
-	
-	
-	
-	
-	;next, test the horizontal enemies
-	LDX #$00
-	LDY #$00
-.loop2
-	LDA $0200
+	LDA $0200		;Test Y difference
 	STA Temp1
-	LDA VertPos, X
+	LDA EnemySprites, X
 	STA Temp2
-	
-	JSR GetDifference		
+	JSR GetDifference
 	CMP #$08		;Should be within a range of 7
-	BCS .skip2
-	
-	;Test the two sprites in this range
-	TestEnemyX EnemySprites+83
-	TestEnemyX EnemySprites+115
-	
-	
-.skip2
+	BCS .skip
+
+	JMP EnemyHit
+.skip
+	INX
+	INX
+	INX
 	INX
 	INY
-	INY		;Incrament registers
-	INY
-	INY
-	CPX #$08	;There are 8 hor sprites
-	BNE .loop2
+	
+	CPY EnemyCount
+	BNE .loop
 	
 	RTS
 	

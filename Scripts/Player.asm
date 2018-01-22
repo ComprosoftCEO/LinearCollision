@@ -147,6 +147,14 @@ ResetPlayer:
 	CPX #$08
 	BNE .loop
 	
+	;Reset player XY
+	LDA PlayerX
+	STA $0203
+	STA $0207
+	LDA PlayerY
+	STA $0200
+	STA $0204
+	
 	;Reset item colors
 	LDA #ColRed
 	STA ERed
@@ -194,7 +202,7 @@ TestExitLocation:
 .cont
 	LDA $0203
 	STA Temp1
-	LDA #124			;X Middle = 124
+	LDA ExitX			;X Middle
 	STA Temp2
 	JSR GetDifference
 	
@@ -203,11 +211,11 @@ TestExitLocation:
 	
 	LDA $0200
 	STA Temp1
-	LDA #127			;X Middle = 127
+	LDA ExitY			;Y Middle = 127
 	STA Temp2
 	JSR GetDifference
 	
-	CMP #$09			;If X is less than 9, go on
+	CMP #12			;If Y is less than 12, go on
 	BCS .exit
 	
 	;Player is indeed on exit
@@ -263,6 +271,10 @@ SetUpExitAnim:
 	LDA #127
 	STA $0200
 	STA $0204
+	
+	;Turn off invincibility
+	LDA #$FF
+	STA InvensibleMS
 	
 	;Reset the player sprite, in case they are in invincible mode
 	LDA #1

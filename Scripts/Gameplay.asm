@@ -28,6 +28,8 @@ LoadGame:
 
 	JSR LoadPlayField
 	JSR LoadGameplayPalette
+	JSR LoadEnergy
+	JSR LoadExit
 	JSR LoadSprites
 	JSR LoadLevelData
 	JSR FinalData
@@ -56,6 +58,13 @@ NextLevel:
 	LDX #99		;Overflows at level 100. You cannot advance past 99.
 .cont
 	STX LevelNumber
+	
+;Add 1 to the layout number
+	LDA LayoutNumber
+	CLC
+	ADC #$01
+	AND #$0F
+	STA LayoutNumber
 	
 ;Incrament the invincibile
 	LDX InvincibleLeft
@@ -121,16 +130,7 @@ StartLevel:
 	BNE .loop
 	LDX #30
 	
-	;Update the palette data
-	LDA PaletteData+26
-	CMP #$30
-	BEQ .opt2		;If color is not white
-	LDA #$30		;Make it white
-	STA PaletteData+26
-	JMP .next
-.opt2
-	LDA #$0F		;Else make it black
-	STA PaletteData+26
+	JSR UpdateReady
 	
 .next	
 	DEY
@@ -161,7 +161,50 @@ StartLevel:
 	CPX #$08
 	BNE .loop4
 	
+	;Reset player XY
+	LDA PlayerX
+	STA $0203
+	STA $0207
+	LDA PlayerY
+	STA $0200
+	STA $0204
 	
 	RTS
+	
+UpdateReady:
+	TYA
+	PHA
+
+	LDA ReadySprites+1
+	CMP #$00
+	BEQ .turnOn
+	
+	;Turn off sprites
+	LDA #$00
+	LDY #$00
+.loop2
+	STA ReadySprites+1, Y
+	INY
+	INY
+	INY
+	INY
+	CPY #20
+	BNE .loop2
+	PLA
+	TAY
+	RTS
+
+.turnOn
+	LDY #$00
+.loop
+	LDA GetReady, Y
+	STA ReadySprites, Y
+	INY
+	CPY #20
+	BNE .loop
+	PLA
+	TAY
+	RTS
+	
 	
 	
