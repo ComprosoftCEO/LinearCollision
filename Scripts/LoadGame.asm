@@ -378,7 +378,7 @@ LoadSprites:
 LoadLevelData:
 	LDX LevelNumber
 	DEX						;Level number is 1 greater than level
-	CPX #$10				;Level 16 is the same as level 15
+	CPX #24				;Level 25 is the same as level 24
 	BCC .skip
 	LDX #$0F			;If greater than 15, set equal to 15
 .skip

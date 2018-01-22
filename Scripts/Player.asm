@@ -19,13 +19,19 @@ MovePlayer:
 .cont
 	;Get the controls
 	JSR GetControls
-	
-	
+	JSR KeyLogger
+
 	;Create a pause menu
 	LDA C1Data
 	AND #%00010000
 	BEQ .resetKey		;If button is not pressed, reset key press
 	
+	;If autoplay is enabled, then return to title
+	LDA AutoPlayEnabled
+	BEQ .pausecont
+	JMP Title
+
+.pausecont	
 	LDA StKeyPress		;Make sure the key isn't currently down
 	CMP #$00
 	BNE .a				;If yes, then skip
@@ -47,6 +53,13 @@ MovePlayer:
 	;Update the player position in this order
 	
 .a	
+
+	;If autokey is enabled, get the data
+	LDA AutoPlayEnabled
+	BEQ .noKey
+	JSR GetAutoKey
+	
+.noKey
 	LDA C1Data
 	AND #%10000000
 	BEQ .resetA
@@ -175,8 +188,12 @@ ResetPlayer:
 	STA PaletteData+13
 	STA PaletteData+14
 	
+	;If autoplay is enabled, reset the pointer
+	LDA AutoPlayEnabled
+	BEQ .diecont
+	JSR ResetAutoPointer
 	
-	
+.diecont	
 	RTS
 	
 	
@@ -215,7 +232,7 @@ TestExitLocation:
 	STA Temp2
 	JSR GetDifference
 	
-	CMP #12			;If Y is less than 12, go on
+	CMP #10			;If Y is less than 10, go on
 	BCS .exit
 	
 	;Player is indeed on exit
@@ -268,11 +285,11 @@ SetUpInvincible:
 	
 SetUpExitAnim:
 	;Move player into center
-	LDA #124
+	LDA ExitX
 	STA $0203
 	STA $0207
 	
-	LDA #127
+	LDA ExitY
 	STA $0200
 	STA $0204
 	
@@ -306,6 +323,7 @@ EndLoop:
 	LDX ExitAnimSprite
 	CPX #$16
 	BNE .cont			;Test if the exit animation is finished
+	
 	JMP NextLevel
 	
 .cont	

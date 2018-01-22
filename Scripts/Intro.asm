@@ -1,6 +1,10 @@
 ;Draw the Comprosoft Intro
 ComprosoftIntro:
 
+	LDA #$80
+	STA $2000
+	JSR WaitNMI
+
 	JSR DisableScreen
 
 	;Start by loading the Comprosoft palette

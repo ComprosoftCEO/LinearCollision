@@ -19,6 +19,8 @@ Gameplay:
 	
 ;Load the game	
 LoadGame:
+	;Initiate the sound
+	JSR sound_init
 
 	;Clear screen to write new stuff
 	JSR DisableScreen
@@ -34,10 +36,49 @@ LoadGame:
 	JSR LoadLevelData
 	JSR FinalData
 	
+	LDA #$00				;Disable Autoplay
+	STA AutoPlayEnabled	
+	
+	JSR SetUpKeyLogger
+	
 	JSR StartLevel
 
 	RTS
 	
+	
+LoadAutoPlay:
+	;Clear screen to write new stuff
+	JSR DisableScreen
+	JSR ResetBackground
+	JSR ResetAttrib
+	JSR ResetSprites
+
+	JSR LoadPlayField
+	JSR LoadGameplayPalette
+	JSR LoadEnergy
+	JSR LoadExit
+	JSR LoadSprites
+	JSR LoadLevelData
+	JSR FinalData
+	
+	;Set up custom timer data
+	LDA #$3C
+	STA TimeMin
+	
+	;Set up the default pointer for the auto data
+	JSR ResetAutoPointer
+	
+	LDA #$01				;Enable Autoplay
+	STA AutoPlayEnabled	
+	
+	;Disable the audio
+	JSR sound_disable
+	
+	
+	
+	JSR StartLevel
+
+	JMP Gameplay
 	
 	
 	
@@ -50,6 +91,13 @@ NextLevel:
 	CPX #$00
 	BNE .loop
 
+	;If autoplay is enabled, return to title
+	LDA AutoPlayEnabled
+	BEQ .lvlcont
+	JMP Title
+
+.lvlcont
+	
 ;Add 1 to the level number
 	LDX LevelNumber
 	INX
@@ -59,12 +107,8 @@ NextLevel:
 .cont
 	STX LevelNumber
 	
-;Add 1 to the layout number
-	LDA LayoutNumber
-	CLC
-	ADC #$01
-	AND #$0F
-	STA LayoutNumber
+	;Pick a new random layout
+	JSR NewLayout
 	
 ;Incrament the invincibile
 	LDX InvincibleLeft
@@ -105,7 +149,6 @@ Pause:
 StartLevel:
 	
 	;Play the intro sound
-	JSR sound_init
 	LDA #$00
 	JSR sound_load
 
@@ -214,3 +257,27 @@ UpdateReady:
 	
 	
 	
+NewLayout:
+	LDA #$00
+	STA RandMin		;Pick layout from 0 to 10
+	LDA #LevelCount
+	STA RandMax
+	JSR RandInt
+	LDX #$00
+.loop
+	CMP PreviousLayouts, X		;Don't allow the same layout for 3 more levels
+	BEQ NewLayout
+	INX
+	CPX #$03
+	BNE .loop
+	
+	STA LayoutNumber	;The layout number
+	TAX
+	
+	;Update the other layouts
+	LDA PreviousLayouts+1
+	STA PreviousLayouts
+	LDA PreviousLayouts+2
+	STA PreviousLayouts+1
+	STX PreviousLayouts+2
+	RTS

@@ -217,6 +217,13 @@ TestEnemyCollision:
 	RTS
 
 .cont2
+	;Don't test if player is in the exit
+	LDA ExitAnimTimer
+	CMP #$FF
+	BEQ .cont3
+	RTS	
+	
+.cont3
 	LDX #$00
 	LDY #$00
 .loop

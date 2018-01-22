@@ -260,7 +260,6 @@ PutAttribute:
 	BNE .loop2
 .exitLoop2
 	STA Temp3
-	STA $0300
 	TXA
 	STA $0301
 	ORA Temp3		;And replace

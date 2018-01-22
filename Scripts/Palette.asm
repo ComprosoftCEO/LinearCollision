@@ -116,20 +116,46 @@ LoadTitlePalette:
 UpdateTitlePal:
 	.include "Macros/TitlePal.asm"
 	LDA NMI_Fired		;Wait for a NMI
-	BEQ .skip
+	BEQ .skip2
 	
 	LDA #$00
 	STA NMI_Fired
 	
 	DEC Temp4
 	BNE .skip		;Only update every 2 seconds
-	LDA #240
+	LDA #135		;135
 	STA Temp4
 	
 	TitlePal Temp1, PaletteData+1
 	TitlePal Temp2, PaletteData+2
 	TitlePal Temp3, PaletteData+3
+	
+	;Test for autoplay
+	INC AutoPlayTimer
+	LDA AutoPlayTimer
+	CMP #16
+	BNE .skip
+	JMP LoadAutoPlay
+	
 .skip
+
+	DEC Temp5		;Update the press start...
+	BNE .skip2
+	LDA #60
+	STA Temp5
+
+	LDA PaletteData+6
+	CMP #$30
+	BNE .on
+	LDA #$0F
+	STA PaletteData+6
+	JMP .skip2
+.on
+	LDA #$30
+	STA PaletteData+6
+	
+.skip2
+
 	RTS
 	
 	

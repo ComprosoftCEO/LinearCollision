@@ -1,4 +1,4 @@
-Clumps:
+Clumps2:
   .db $80,$28,$14,$01
   .db $BF,$AB,$D5,$FD
   .db $A0,$AA,$55,$05

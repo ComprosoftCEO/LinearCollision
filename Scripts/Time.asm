@@ -92,4 +92,10 @@ GameOver:
 	CPX #$00
 	BNE .loop
 	
+	;If autoplay is enabled, return to title
+	LDA AutoPlayEnabled
+	BEQ .timecont
+	JMP Title
+	
+.timecont
 	JMP Reset

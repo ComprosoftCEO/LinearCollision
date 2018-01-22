@@ -68,6 +68,7 @@ PlayFieldColor		.rs 1
 
 LevelNumber			.rs 1		;The current level
 LayoutNumber		.rs 1		;The current layout (There are 16 total)
+PreviousLayouts		.rs 3		;Store the 3 previous layouts
 
 CollisionData = $0400			;Where the collsion data is stored
 ChangeX				.rs 1		;How much to move the player
@@ -131,6 +132,18 @@ TimeTSec = $0215		;Time for tens of seconds
 TimeOSec = $0219		;Time for hundreds of seconds
 TimeCounter		.rs 1	;Frames until the next timer tick
 
+AutoPlayLow			.rs 1	;Low and High pointers for automatic play
+AutoPlayHigh		.rs 1
+AutoPlayCounter		.rs 1
+AutoPlayCurrentKey	.rs 1
+AutoPlayTimer		.rs 1		;How many frames until the autoplay
+AutoPlayEnabled		.rs 1		;Is Autoplay Enabled?
+
+LoggerLow		.rs 1
+LoggerHigh		.rs 1		;Various data spots for the key logger
+LoggerCurKey	.rs 1
+LoggerCounter	.rs 1
+
 ;------------------Start of Code-------------------------	
   .bank 0
   .org $8000
@@ -147,9 +160,6 @@ Reset:
 	LDA XorVals+2
 	STA XorVal3
 	
-	;Enable sound channels
-    jsr sound_init
-	
 	;JSR ComprosoftIntro
 	
 	LDA #$00		;Turn off display to load default assets
@@ -161,6 +171,17 @@ Reset:
 	JSR LoadGameplayPalette
 	
 Title:
+	;Reset any sound data
+	LDX #$00
+	LDA #$00
+.loop
+	STA $0300, X
+	INX
+	BNE .loop
+
+	;Enable sound channels
+    jsr sound_init
+
 	JSR ShowTitle
 
 	JSR LoadGame
@@ -237,6 +258,7 @@ XorVals:
 	.include "Data/SpriteData.asm"	
 	.include "Data/LevelData.asm"
 	.include "Data/LookupTable.asm"
+	.include "Data/AutoPlayData.asm"
 		
   .bank 1
     .org $A000	
@@ -254,18 +276,35 @@ XorVals:
 	.include "Scripts/Collision.asm"
 	.include "Scripts/Gameplay.asm"	
 	.include "Scripts/Time.asm"	
+	.include "Scripts/AutoPlay.asm"
 	
 	
 ;---------------------Maze Layouts----------
   .bank 2
 	.org $C000
 	
-	.include "Data/Levels/Default.asm"		;Default:
+LevelCount = 20
+	
+	.include "Data/Levels/Default.asm"
 	.include "Data/Levels/Abstract1.asm"
-	.include "Data/Levels/Clumps.asm"
+	.include "Data/Levels/Clumps1.asm"
+	.include "Data/Levels/Clumps2.asm"
 	.include "Data/Levels/Grid.asm"
 	.include "Data/Levels/Diamond.asm"
-	
+	.include "Data/Levels/Circuits.asm"
+	.include "Data/Levels/Highway.asm"
+	.include "Data/Levels/Arena.asm"
+	.include "Data/Levels/Oval.asm"
+	.include "Data/Levels/Abstract2.asm"
+	.include "Data/Levels/XShape.asm"
+	.include "Data/Levels/Rain.asm"
+	.include "Data/Levels/Triangles1.asm"
+	.include "Data/Levels/Circle.asm"
+	.include "Data/Levels/Abstract3.asm"
+	.include "Data/Levels/Love.asm"
+	.include "Data/Levels/Spiral.asm"
+	.include "Data/Levels/Triangles2.asm"
+	.include "Data/Levels/Stripes.asm"
 	
 ;-------------Sound Engine----------------------	
   .bank 3
@@ -308,7 +347,7 @@ song_headers:
 
 ;--------------------Graphics-----------------------------
 	
-  .bank 4        ; change to bank 2 - Graphics information
+  .bank 4        ; change to bank 4 - Graphics information
   .org $0000     ;Graphics start at $0000
 
 	.incbin "Graphics.chr"  ; Include Binary file that will contain all program graphics

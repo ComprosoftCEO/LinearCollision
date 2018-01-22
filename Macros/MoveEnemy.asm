@@ -8,8 +8,8 @@ MoveEnemySegInc:	.macro 		;Macro to move the enemies
 	;5 = Default tile value
 	;6 = Xor Value
 	
-	LDA \1
-	BEQ .exit\@		;Skip if the counter is greater than 0
+	CPX \1
+	BEQ .exit\@		;Skip if the counter is equal to 0
 	
 .loopT\@
 	LDA EnemySprites+1, Y			;Is enemy enabled?
@@ -76,8 +76,8 @@ MoveEnemySegDec:	.macro 		;Macro to move the enemies
 	;5 = Default tile value
 	;6 = Xor Value
 	
-	LDA \1
-	BEQ .exit\@		;Skip if the counter is greater than 0
+	CPX \1
+	BEQ .exit\@		;Skip if the counter is equal to 0
 	
 .loopT\@
 	LDA EnemySprites+1, Y			;Is enemy enabled?
